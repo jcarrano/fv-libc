@@ -1,30 +1,43 @@
 /*
  * memset.c
+ *
+ * Copyright (c) 2019 Juan I. Carrano
+ * Copyright (c) 2012 Petteri Aimonen
+ * Copyright (c) The Regents of the University of California.
+ *
+ * SPDX-License-Identifier: BSD-3-CLAUSE
  */
 
-#include <string.h>
-#include <stdint.h>
 
-void *memset(void *dst, int c, size_t n)
+/*@
+  requires n ≥ 0;
+  requires \valid((char*)dst + (0..n-1));
+
+  assigns ((char*)dst)[0..n-1];
+
+  ensures \result ≡ dst;
+  ensures ∀ int i; 0 ≤ i < n ⇒ ((char*)dst)[i] ≡ (char)c;
+*/
+void *memset(void *dst, int c, int n)
 {
 	char *q = dst;
+	/*@ ghost char *q0 = dst;
+		  int n0 = n;
+		  int i = 0;
+	 */
 
-#if defined(__i386__)
-	size_t nl = n >> 2;
-	asm volatile ("cld ; rep ; stosl ; movl %3,%0 ; rep ; stosb"
-		      : "+c" (nl), "+D" (q)
-		      : "a" ((unsigned char)c * 0x01010101U), "r" (n & 3));
-#elif defined(__x86_64__)
-	size_t nq = n >> 3;
-	asm volatile ("cld ; rep ; stosq ; movl %3,%%ecx ; rep ; stosb"
-		      :"+c" (nq), "+D" (q)
-		      : "a" ((unsigned char)c * 0x0101010101010101U),
-			"r" ((uint32_t) n & 7));
-#else
+	/*@
+	   loop assigns n, i, q, q0[0..n0-1];
+	   loop invariant bound: 0 ≤ i ≤ n0;
+	   loop invariant index: n ≡ n0-i;
+	   loop invariant pointer: q ≡ q0+i;
+	   loop invariant ∀ int j; 0 ≤ j < i ⇒ q0[j] ≡ (char)c;
+	 */
 	while (n--) {
 		*q++ = c;
+		/*@ ghost i++; */
 	}
-#endif
+
 
 	return dst;
 }
