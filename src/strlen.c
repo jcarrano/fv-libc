@@ -10,14 +10,6 @@
 
 #include <string.h>
 
-/*@
-  requires ∃ size_t term_idx; \valid_read(s + (0..term_idx)) ∧ s[term_idx] ≡ 0;
-
-  assigns \nothing;
-
-  ensures ∀ size_t i; 0 ≤ i < \result ⇒ s[i] ≢ 0;
-  ensures s[\result] ≡ 0;
- */
 size_t strlen(const char *s)
 {
 	const char *ss = s;
