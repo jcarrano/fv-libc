@@ -1,5 +1,10 @@
 /*
  * strnlen()
+ *
+ * Copyright (c) 2019 Juan I. Carrano
+ * See LICENSE in the root directory for other contributors.
+ *
+ * SPDX-License-Identifier: BSD-3-CLAUSE
  */
 
 #include <string.h>

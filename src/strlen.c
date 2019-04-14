@@ -2,8 +2,7 @@
  * strlen()
  *
  * Copyright (c) 2019 Juan I. Carrano
- * Copyright (c) 2012 Petteri Aimonen
- * Copyright (c) The Regents of the University of California.
+ * See LICENSE in the root directory for other contributors.
  *
  * SPDX-License-Identifier: BSD-3-CLAUSE
  */
