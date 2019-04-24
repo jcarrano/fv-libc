@@ -9,6 +9,9 @@ void *memcpy(void *dst, const void *src, size_t n)
 {
 	const char *p = src;
 	char *q = dst;
+	/*@ ghost size_t i = 0; */
+	/*@ ghost size_t n0 = n; */
+/*
 #if defined(__i386__)
 	size_t nl = n >> 2;
 	asm volatile ("cld ; rep ; movsl ; movl %3,%0 ; rep ; movsb":"+c" (nl),
@@ -20,10 +23,22 @@ void *memcpy(void *dst, const void *src, size_t n)
 		      (nq), "+S"(p), "+D"(q)
 		      :"r"((uint32_t) (n & 7)));
 #else
+*/
+	/*@
+	 loop assigns n, i, q, p;
+	 loop assigns ((char*)dst)[0..n0-n-1];
+	 loop invariant bound: 0 ≤ i ≤ n0;
+	 loop invariant index: n ≡ n0-i;
+	 loop invariant srcindex: p ≡ ((char*)src) + i;
+	 loop invariant dstindex: q ≡ ((char*)dst) + i;
+	 loop invariant memory_equal(src, dst, (0..i-1));
+	 */
 	while (n--) {
 		*q++ = *p++;
+		/*@ ghost i++; */
 	}
-#endif
+
+//#endif
 
 	return dst;
 }

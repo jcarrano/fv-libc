@@ -57,7 +57,18 @@ __extern void *memccpy(void *, const void *, int, size_t);
 __extern void *memchr(const void *, int, size_t);
 __extern void *memrchr(const void *, int, size_t);
 __extern int memcmp(const void *, const void *, size_t);
-__extern void *memcpy(void *, const void *, size_t);
+
+/*@
+  requires \valid_read((char*)src + (0..n-1));
+  requires \valid((char*)dst + (0..n-1));
+  requires \separated((char*)src + (0..n-1), (char*)dst + (0..n-1));
+
+  assigns ((char*)dst)[0..n-1];
+
+  ensures memory_equal(src, dst, (0..n-1));
+  ensures \result ≡ dst;
+*/
+__extern void *memcpy(void *dst, const void *src, size_t n);
 __extern void *memmove(void *, const void *, size_t);
 
 /*@
