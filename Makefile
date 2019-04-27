@@ -1,52 +1,206 @@
-# You can override the CFLAGS and C compiler externally,
-# e.g. make PLATFORM=cortex-m3
-CFLAGS += -g -Wall -Werror -I include
+# ############################################################################ #
+# Global config
+# ############################################################################ #
 
-ifeq ($(PLATFORM),cortex-m3)
-  CC      = arm-none-eabi-gcc
-  AR      = arm-none-eabi-ar
-  CFLAGS += -mcpu=cortex-m3 -mthumb
-  CFLAGS += -fno-common -Os
-  CFLAGS += -ffunction-sections -fdata-sections
-else ifeq ($(PLATFORM),cortex-m0)
-  CC      = arm-none-eabi-gcc
-  AR      = arm-none-eabi-ar
-  CFLAGS += -mcpu=cortex-m0 -mthumb
-  CFLAGS += -fno-common -Os
-  CFLAGS += -ffunction-sections -fdata-sections
+# #### Input, output and names ####
+
+OUT_DIR ?= build
+SRC ?= src
+LIBNAME ?= libc
+OUT_FILE = $(OUT_DIR)/$(LIBNAME)
+
+# #### Frama-C configuration ####
+
+FRAMA_C ?= frama-c
+FRAMA_C_CONFIG ?= $(FRAMA_C)-config
+FRAMA_C_FLAGS ?= -no-frama-c-stdlib -cpp-frama-c-compliant
+FRAMA_SHARE ?= $(shell $(FRAMA_C_CONFIG) -print-share-path)
+FRAMA_CPPFLAGS ?= -I$(FRAMA_SHARE)/libc/ -DFRAMAC_SOURCE -D__FC_MACHDEP_X86_32 -E -C
+FRAMA_WP_FLAGS ?= -wp -wp-rte
+FRAMA_REPORT_FLAGS ?= -report-unclassified-unknown ERROR -report-classify -report-output
+
+# #### Tool config ######
+
+# archiver
+ifeq (${THIN_ARCHIVE}, true)
+ARFLAGS = rcTs
+else
+ARFLAGS = rcs
 endif
 
-# With this, the makefile should work on Windows also.
-ifdef windir
-  RM = del
+# preprocessor
+IPATH += -Iinclude -I$(SRC)/templates
+CPPFLAGS += $(IPATH)
+
+# compiler
+WFLAGS ?= -pedantic -Wall -Wextra
+
+CFLAGS += -std=c99 -ffunction-sections -fdata-sections
+
+# Important when creating a library
+CFLAGS += -fPIC
+
+# Other tools
+
+NM ?= nm
+
+# windows hacks
+ifeq ($(strip $(OS)), Windows_NT)
+MKDIR           ?= md
+RM		?= del
+RMDIR		?= rmdir /s /q
+PATHSEP := \\
+else
+MKDIR           ?= mkdir -p
+RM		?= rm -f
+RMDIR		?= rm -rf
+PATHSEP := /
 endif
 
-# Just include all the source files in the build.
-CSRC = $(wildcard src/*.c)
-OBJS = $(CSRC:.c=.o)
+# rwildcard  dir,pattern
+#	Use this function to recursively search for all files with a certain
+#	extension.
+#	Unix find is better for this, but it may not be available on windows.
+rwildcard=$(foreach d,$(wildcard $1*),$(call rwildcard,$d/,$2) $(filter $(subst *,%,$2),$d))
 
-# And the files for the test suite
-TESTS_CSRC = $(wildcard tests/*_tests.c)
-TESTS_OBJS = $(TESTS_CSRC:.c=)
+# rdwildcard  dir
+# 	Find all directories
+rdwildcard=$(foreach d,$(wildcard $1*/),$(call rdwildcard,$d/) $(filter %/,$d))
 
-# Some of the files uses "templates", i.e. common pieces
-# of code included from multiple files.
-CFLAGS += -Isrc/templates
+# transform infiles,in_extension,out_extension
+#	Convert input filenames into output filenames by changing the extension
+#	and the directory
+transform=$(1:%$2=$(OUT_DIR)/%$3)
 
-all: libc.a
 
-clean:
-	$(RM) $(OBJS) $(TESTS_OBJS) libc.a
+# ###################### Messages ######################### #
 
-libc.a: $(OBJS)
-	$(RM) $@
-	$(AR) ru $@ $^
+MSG_ARCHIVING ?= Creating static library archive
 
-run_tests: $(TESTS_OBJS)
-	$(foreach f,$^,$f)
+# ############################################################################ #
+# Automatic dependency generation
+# ############################################################################ #
 
-tests/%: tests/%.c tests/tests_glue.c libc.a
-	$(CC) $(CFLAGS) -o $@ $^
 
-%.o: %.c
-	$(CC) $(CFLAGS) -c -o $@ $<
+# flags for the preprocessor
+DEPFLAGS ?= -MM -MP -MQ $@ $(patsubst %,-MQ %,$(call transform,$*.o $*.proof))
+
+# ######## Let's make a list of all files which exist currently ############ #
+C_FILES=$(call rwildcard,$(SRC)/,*.c)
+SRC_DIRECTORIES=$(SRC)/ $(call rdwildcard,$(SRC)/)
+OUT_DIRECTORIES=$(call rdwildcard,$(OUT_DIR)/)
+
+# .d files are dependency listings for .c files
+D_FILES=$(call rwildcard,$(OUT_DIR)/,*.d)
+
+O_FILES=$(call rwildcard,$(OUT_DIR)/,*.o)
+GCH_FILES=$(call rwildcard,$(OUT_DIR)/,*.gch)
+PROOF_FILES=$(call rwildcard,$(OUT_DIR)/,*.proof)
+
+# ###### Make a list of files that need to be produced ###############
+
+# each .c produces a .o
+NEEDED_OBJECTS = $(call transform,$(C_FILES),.c,.o)
+
+# FIXME: right now only some files have proof, so we have to specify them
+# manually
+# NEEDED_PROOFS = $(C_FILES:.c=.proof)
+PROVED_C_FILES = src/strcpy.c src/memcpy.c src/strnlen.c src/strlen.c \
+		 src/memset.c
+NEEDED_PROOFS = $(call transform,$(PROVED_C_FILES),.c,.proof)
+NEEDED_REPORTS = $(call transform,$(PROVED_C_FILES),.c,.proof-report)
+
+NEEDED_DEPS = $(call transform,$(C_FILES),.c,.d)
+
+NEEDED_DIRS = $(OUT_DIR) $(call transform,$(SRC_DIRECTORIES),,)
+
+# More on automatic dependencies later
+
+# ############################################################################ #
+# Rules for building the project
+# ############################################################################ #
+
+.PHONY: all library proofs
+
+all: proofs library
+
+library: $(OUT_FILE).a $(OUT_FILE).sym
+
+proofs: $(NEEDED_PROOFS) $(NEEDED_REPORTS)
+
+# ###################### Output directory creation ########################### #
+
+$(OUT_DIR):
+	$(MKDIR) $@
+
+$(OUT_DIR)/%/:
+	$(MKDIR) $@
+
+.PHONY: directories
+directories: | $(NEEDED_DIRS)
+
+# ######################## Rules for cleaning ################################ #
+
+.PHONY: depclean
+depclean: $(foreach dfile,$(D_FILES),$(dfile)-clean)
+
+.PHONY: clean
+clean: $(foreach f,$(O_FILES) $(GCH_FILES) $(PROOF_FILES),$(f)-clean)
+
+.PHONY: allclean
+allclean: clean depclean
+
+.PHONY: wipe
+wipe: allclean $(OUT_DIR)-dirclean
+
+# Rules to clean each type of file
+
+%-clean:
+	$(RM) $*
+
+%-dirclean:
+	$(RMDIR) $*
+
+# ###################### Dependency handling ################################# #
+
+# If we are only cleaning then ignore the dependencies
+ifneq ($(MAKECMDGOALS),depclean)
+ifneq ($(MAKECMDGOALS),clean)
+ifneq ($(MAKECMDGOALS),wipe)
+include $(NEEDED_DEPS)
+endif
+endif
+endif
+
+$(OUT_DIR)/%.d: %.c | directories
+	$(CC) $(CPPFLAGS) $(CFLAGS) $(DEPFLAGS) $< >$@
+
+
+# ##################### Output file generation ############################### #
+
+
+$(OUT_FILE).a: $(NEEDED_OBJECTS) | directories
+
+# create a static library file from object files
+%.a:
+	$(info $(MSG_ARCHIVING))
+	$(AR) $(ARFLAGS) $@ $^
+
+# if nm fails for some reason, the file will still be created (because of
+# the redirect. Using an intermediate target causes make to delete it.
+%.sym-tmp: %.a
+	$(NM) -n $< > $@
+
+%.sym: %.sym-tmp
+	cp $< $@
+
+$(OUT_DIR)/%.o: | directories
+	$(CC) $(CPPFLAGS) $(CFLAGS) -c $< -o $@
+
+# ################## Proving stuff ########################################## #
+
+$(OUT_DIR)/%.proof-report $(OUT_DIR)/%.proof: export CPP := $(CPP) $(CPPFLAGS) $(FRAMA_CPPFLAGS)
+$(OUT_DIR)/%.proof-report $(OUT_DIR)/%.proof: | directories
+	$(FRAMA_C) $(FRAMA_C_FLAGS) $(FRAMA_WP_FLAGS) $< \
+		-then $(FRAMA_REPORT_FLAGS) $@-report
+	touch $@
