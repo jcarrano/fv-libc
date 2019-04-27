@@ -16,22 +16,12 @@ char *strcpy(char *dst, const char *src)
 	char *q = dst;
 	const char *p = src;
 	char ch;
-	/*@ ghost size_t is = 0; */
+	/*@ ghost size_t is; */
 	/*@ ghost size_t is0, i = 0; */
 
-	/*@ ghost
-	/@@
-	  loop assigns is;
-	  loop invariant t1: string_length(src) == is + string_length(src+is);
-	  loop invariant t2: ∀ size_t j; 0 ≤ j < is ⇒ src[j] ≢ 0;
-	  loop invariant t3: \separated(src + (0..is), dst + (0..is));
-	 @/
-	while(src[is]) {
-		is++;
-	}
-	*/
+	/*@ ghost is = strlen(src); */
+	/*@ assert \separated(src + (0..is), dst + (0..is)); */
 
-	/*@ assert is == string_length(src); */
 	/*@ ghost is0 = is; */
 
 	/*@

@@ -102,9 +102,7 @@ __extern int strcmp(const char *, const char *);
 /*@
   requires valid_string_read(src);
   requires ∀ ℤ i; \valid_read(src + i) ⇒ \valid(dst + i);
-  requires \separated(src, dst);
-  requires ∀ ℤ i; src[i] ≢ 0 ∧ \separated(src + (0..i), dst + (0..i))
-		⇒ \separated(src + (0..i+1), dst + (0..i+1));
+  requires \separated(src + (0..string_length(src)), dst + (0..string_length(src)));
 
   assigns dst[0..string_length{Pre}(src)];
 
