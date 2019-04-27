@@ -17,7 +17,7 @@ size_t strlen(const char *s)
 	/*@
 	  loop assigns ss, i;
 	  loop invariant ss ≡ s + i;
-	  loop invariant string_length(s) == i + string_length(ss);
+	  loop invariant string_length(s) ≡ i + string_length(ss);
 	  loop invariant ∀ size_t j; 0 ≤ j < i ⇒ s[j] ≢ 0;
 	 */
 	while (*ss) {

@@ -6,6 +6,7 @@
 
 OUT_DIR ?= build
 SRC ?= src
+INCLUDE ?= include
 LIBNAME ?= libc
 OUT_FILE = $(OUT_DIR)/$(LIBNAME)
 
@@ -29,7 +30,7 @@ ARFLAGS = rcs
 endif
 
 # preprocessor
-IPATH += -Iinclude -I$(SRC)/templates
+IPATH += -I$(INCLUDE) -I$(SRC)/templates
 CPPFLAGS += $(IPATH)
 
 # compiler
@@ -43,6 +44,7 @@ CFLAGS += -fPIC
 # Other tools
 
 NM ?= nm
+ACSL_UNICODE ?= scripts/acsl-unicode.sed
 
 # windows hacks
 ifeq ($(strip $(OS)), Windows_NT)
@@ -87,6 +89,7 @@ DEPFLAGS ?= -MM -MP -MQ $@ $(patsubst %,-MQ %,$(call transform,$*.o $*.proof))
 
 # ######## Let's make a list of all files which exist currently ############ #
 C_FILES=$(call rwildcard,$(SRC)/,*.c)
+H_FILES=$(call rwildcard,$(SRC)/ $(INCLUDE)/,*.h)
 SRC_DIRECTORIES=$(SRC)/ $(call rdwildcard,$(SRC)/)
 OUT_DIRECTORIES=$(call rdwildcard,$(OUT_DIR)/)
 
@@ -164,17 +167,13 @@ wipe: allclean $(OUT_DIR)-dirclean
 # ###################### Dependency handling ################################# #
 
 # If we are only cleaning then ignore the dependencies
-ifneq ($(MAKECMDGOALS),depclean)
-ifneq ($(MAKECMDGOALS),clean)
-ifneq ($(MAKECMDGOALS),wipe)
+_REALGOAL = $(if $(MAKECMDGOALS),$(MAKECMDGOALS),all)
+ifneq (,$(filter-out depclean clean wipe unicodize,$(_REALGOAL)))
 include $(NEEDED_DEPS)
-endif
-endif
 endif
 
 $(OUT_DIR)/%.d: %.c | directories
-	$(CC) $(CPPFLAGS) $(CFLAGS) $(DEPFLAGS) $< >$@
-
+	$(CC) $(CPPFLAGS) $(CFLAGS) $(DEPFLAGS) $< -o $@
 
 # ##################### Output file generation ############################### #
 
@@ -204,3 +203,16 @@ $(OUT_DIR)/%.proof-report $(OUT_DIR)/%.proof: | directories
 	$(FRAMA_C) $(FRAMA_C_FLAGS) $(FRAMA_WP_FLAGS) $< \
 		-then $(FRAMA_REPORT_FLAGS) $@-report
 	touch $@
+
+#                   ╭╴▼ ╖  ╭───────────╮  ╓ ▽╶╮
+#                ⇜◫╞╡ ◉ ╠╬╪╡ Æsthetics ╞╪╬╣ ◎ ╞╡◫⟿
+#                   ╰╴△ ╜  ╰───────────╯  ╙ ▲╶╯
+
+NEED_PRETTYFYING = $(C_FILES) $(H_FILES)
+
+.PHONY: unicodize
+
+unicodize: $(NEED_PRETTYFYING:%=%-pretty)
+
+%-pretty:
+	sed -f $(ACSL_UNICODE) -i $*

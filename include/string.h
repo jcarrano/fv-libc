@@ -107,7 +107,7 @@ __extern char *strndup(const char *, size_t);
 
   ensures ∀ size_t i; 0 ≤ i < \result ⇒ s[i] ≢ 0;
   ensures s[\result] ≡ 0;
-  ensures string_length(s) == \result;
+  ensures string_length(s) ≡ \result;
  */
 __extern size_t strlen(const char *s);
 
@@ -117,7 +117,7 @@ __extern size_t strlen(const char *s);
   assigns \nothing;
 
   ensures ∀ size_t i; 0 ≤ i < \result ⇒ s[i] ≢ 0;
-  ensures \result <= maxlen;
+  ensures \result ≤ maxlen;
   ensures s[\result] ≡ 0 ∨ \result ≡ maxlen;
  */
 __extern size_t strnlen(const char *s, size_t maxlen);
