@@ -27,23 +27,9 @@
   predicate valid_string_read(char *s) = ∃ size_t term_idx;
 			      \valid_read(s + (0..term_idx)) ∧ s[term_idx] ≡ 0;
 
-  // These non-overlapping predicates are not very useful...
-  predicate non_overlapping(void *x, void *y, ℤ size) =
-		\separated((char*)x + (0..size-1), (char*)x + (0..size-1));
-
-  predicate non_overlapping_str(char *src, char *dest) =
-	\separated(src, dest) ∧ (*src ≡ 0 ∨ non_overlapping_str(src+1, dest+1));
-
   predicate s_terminated{L}(char *s) = ∃ size_t term_idx; s[term_idx] ≡ 0;
 
   logic ℤ string_length{L}(char *s) = ((*s ≡ 0)?  0 : 1 + string_length(s+1));
-
-  predicate string_length_is{L}(char *s, ℤ l) = s[l] ≡ 0 ∧
-				(∀ size_t i; 0 ≤ i < l ⇒ s[i] ≢ 0);
-
-  logic 𝔹 rec_equal(char *x, char *y) =
-	(*x ≡ *y)? ((*x ≡ 0)? \true : rec_equal(x+1, y+1))
-		   : \false;
 
   predicate memory_equal{Lx, Ly}(void *x, void *y, ℤ size) =
 	∀ size_t i; 0 ≤ i < size ⇒ \at(((char*)x)[i], Lx) ≡ \at(((char*)y)[i], Ly);
