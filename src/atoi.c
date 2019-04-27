@@ -1,3 +1,3 @@
 #define TYPE int
 #define NAME atoi
-#include "atox.c"
+#include "atox.h"

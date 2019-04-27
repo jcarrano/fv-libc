@@ -1,5 +1,5 @@
 /*
- * strtox.c
+ * strtox.h
  *
  * strto...() functions, by macro definition
  */

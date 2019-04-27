@@ -1,3 +1,3 @@
 #define TYPE long
 #define NAME atol
-#include "atox.c"
+#include "atox.h"

@@ -1,5 +1,5 @@
 /*
- * atox.c
+ * atox.h
  *
  * atoi(), atol(), atoll()
  */
