@@ -31,7 +31,7 @@ void *memcpy(void *dst, const void *src, size_t n)
 	 loop invariant index: n ≡ n0-i;
 	 loop invariant srcindex: p ≡ ((char*)src) + i;
 	 loop invariant dstindex: q ≡ ((char*)dst) + i;
-	 loop invariant memory_equal(src, dst, (0..i-1));
+	 loop invariant memory_equal{Here, Here}(src, dst, i);
 	 */
 	while (n--) {
 		*q++ = *p++;

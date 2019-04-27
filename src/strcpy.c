@@ -9,34 +9,45 @@
 
 #include <string.h>
 
-// This one is proving to be veeeery tricky!!!!
+
+
 char *strcpy(char *dst, const char *src)
 {
 	char *q = dst;
 	const char *p = src;
 	char ch;
-	/*@ ghost size_t i = 0; */
-	/*@ ghost char ch1 = *p; */
+	/*@ ghost size_t is = 0; */
+	/*@ ghost size_t is0, i = 0; */
+
+	/*@ ghost
+	/@@
+	  loop assigns is;
+	  loop invariant t1: string_length(src) == is + string_length(src+is);
+	  loop invariant t2: ∀ size_t j; 0 ≤ j < is ⇒ src[j] ≢ 0;
+	  loop invariant t3: \separated(src + (0..is), dst + (0..is));
+	 @/
+	while(src[is]) {
+		is++;
+	}
+	*/
+
+	/*@ assert is == string_length(src); */
+	/*@ ghost is0 = is; */
 
 	/*@
-	  loop assigns q, ch, ch1, p, i;
-	  loop assigns dst[0..i-1];
-	  loop invariant string_length{Pre}(src) == i + string_length{Pre}(p);
-	  loop invariant srcindex: p ≡ src + i;
-	  loop invariant dstindex: q ≡ dst + i;
-	  loop invariant ∀ integer j; 0 ≤ j < i ⇒ src[j] ≢ 0;
-	  loop invariant eq: memory_equal(src, dst, (0..src-p-1));
-	  loop invariant separation: \separated(src + (0..i), dst + (0..i));
+	 loop assigns is, i, q, p, ch;
+	 loop assigns dst[0..is0];
+	 loop invariant bound: 0 ≤ i ≤ is0;
+	 loop invariant index: is ≡ is0-i;
+	 loop invariant srcindex: p ≡ src + i;
+	 loop invariant dstindex: q ≡ dst + i;
+	 loop invariant memory_equal{Here, Here}(src, dst, i);
 	 */
 	do {
 		*q++ = ch = *p++;
-		/*@ ghost ch1 = *p; */
-		if (!ch)
-			break;
 		/*@ ghost i++; */
+		/*@ ghost is--; */
 	} while (ch);
-
-	// /*@ assert string_length{Pre}(src) == k; */
 
 	return dst;
 }

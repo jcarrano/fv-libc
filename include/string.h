@@ -32,24 +32,25 @@
 		\separated((char*)x + (0..size-1), (char*)x + (0..size-1));
 
   predicate non_overlapping_str(char *src, char *dest) =
-	\separated(src, dest) && (*src ≡ 0 || non_overlapping_str(src+1, dest+1));
+	\separated(src, dest) ∧ (*src ≡ 0 ∨ non_overlapping_str(src+1, dest+1));
 
   predicate s_terminated{L}(char *s) = ∃ size_t term_idx; s[term_idx] ≡ 0;
 
   logic ℤ string_length{L}(char *s) = ((*s ≡ 0)?  0 : 1 + string_length(s+1));
 
   predicate string_length_is{L}(char *s, ℤ l) = s[l] ≡ 0 ∧
-				(∀ size_t i; 0 ≤ i < l ==> s[i] ≢ 0);
+				(∀ size_t i; 0 ≤ i < l ⇒ s[i] ≢ 0);
 
   logic 𝔹 rec_equal(char *x, char *y) =
 	(*x ≡ *y)? ((*x ≡ 0)? \true : rec_equal(x+1, y+1))
 		   : \false;
 
-  predicate memory_equal(void *x, void *y, set<ℤ> indices) =
-	∀ ℤ i; i ∈ indices ⇒ ((char*)x)[i] ≡ ((char*)y)[i];
+  predicate memory_equal{Lx, Ly}(void *x, void *y, ℤ size) =
+	∀ size_t i; 0 ≤ i < size ⇒ \at(((char*)x)[i], Lx) ≡ \at(((char*)y)[i], Ly);
 
-  predicate string_equal(char *x, char *y) = ∃ ℤ term_idx;
-	term_idx >= 0 && memory_equal(x, y, (0..term_idx)) ∧ x[term_idx] ≡ 0;
+  predicate string_equal{Lx, Ly}(char *x, char *y) = ∃ size_t term_idx;
+	term_idx ≥ 0 ∧ memory_equal{Lx, Ly}(x, y, term_idx+1)
+	∧ \at(x[term_idx], Lx) ≡ 0;
 
 */
 
@@ -65,7 +66,7 @@ __extern int memcmp(const void *, const void *, size_t);
 
   assigns ((char*)dst)[0..n-1];
 
-  ensures memory_equal(src, dst, (0..n-1));
+  ensures memory_equal{Post,Post}(src, dst, n);
   ensures \result ≡ dst;
 */
 __extern void *memcpy(void *dst, const void *src, size_t n);
@@ -100,15 +101,14 @@ __extern int strcmp(const char *, const char *);
 
 /*@
   requires valid_string_read(src);
-  requires \forall integer i; \valid_read(src+i) ==> \valid(dst + i);
+  requires ∀ ℤ i; \valid_read(src + i) ⇒ \valid(dst + i);
   requires \separated(src, dst);
-  requires ∀ integer i; (∀ integer j; 0 ≤ j < i ==> src[j] ≢ 0)
-		==> \separated(src + (0..i), dst + (0..i));
+  requires ∀ ℤ i; src[i] ≢ 0 ∧ \separated(src + (0..i), dst + (0..i))
+		⇒ \separated(src + (0..i+1), dst + (0..i+1));
 
   assigns dst[0..string_length{Pre}(src)];
-  //assigns dst[string_length(src)];
 
-  ensures string_equal(src, dst);
+  ensures string_equal{Pre,Post}(src, dst);
   ensures \result ≡ dst;
 */
 __extern char * strcpy(char *dst, const char *src);
