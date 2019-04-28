@@ -20,7 +20,6 @@ void *memchr(const void *s, int c, size_t n)
 	  loop invariant index: sp ≡ \at(sp, LoopEntry) + i;
 	  loop invariant index2: n ≡ \at(n, Pre) - i;
 	  loop invariant ∀ size_t j; 0 ≤ j < i ⇒ \at(sp, LoopEntry)[j] ≢ cc;
-	  loop invariant \at(sp, LoopEntry) <= sp <= \at(sp, LoopEntry)+\at(n, Pre);
 	 */
 	while (n--) {
 		if (*sp == (char)c)

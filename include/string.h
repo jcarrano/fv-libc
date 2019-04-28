@@ -37,7 +37,6 @@
   predicate string_equal{Lx, Ly}(char *x, char *y) = ∃ size_t term_idx;
 	term_idx ≥ 0 ∧ memory_equal{Lx, Ly}(x, y, term_idx+1)
 	∧ \at(x[term_idx], Lx) ≡ 0;
-
 */
 
 /*@
@@ -48,7 +47,7 @@
   assigns \nothing;
 
   behavior find:
-	assumes ∃ size_t i; 0 ≤ i < n ∧ (char)c ≡ ((char*)s)[i];
+	assumes (char)c ∈ ((char*)s)[0..n-1];
 
 	ensures matches: *(char*)\result ≡ (char)c;
 	ensures within_bounds: (char*)s ≤ (char*)\result < (char*)s + n;
@@ -56,7 +55,7 @@
 	                               ⇒ ((char*)s)[i] ≢ (char)c;
 
   behavior no_find:
-	assumes ∀ size_t i; 0 ≤ i < n ==> (char)c ≢ ((char*)s)[i];
+	assumes ¬ ((char)c ∈ ((char*)s)[0..n-1]);
 
 	ensures \result ≡ NULL;
 
