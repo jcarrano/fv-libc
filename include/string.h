@@ -101,7 +101,29 @@ __extern void bzero(void *, size_t);
 __extern int strcasecmp(const char *, const char *);
 __extern int strncasecmp(const char *, const char *, size_t);
 __extern char *strcat(char *, const char *);
-__extern char *strchr(const char *, int);
+
+/*@
+  requires valid_string_read(s);
+
+  assigns \nothing;
+
+  behavior find:
+	assumes (char)c ∈ s[0..string_length(s)];
+
+	ensures matches: *\result ≡ (char)c;
+	ensures within_bounds: s ≤ \result ≤ s + string_length(s);
+	ensures is_first: ∀ size_t i; s + i < \result ⇒ s[i] ≢ (char)c;
+
+  behavior no_find:
+	assumes ¬ ((char)c ∈ s[0..string_length(s)]);
+
+	ensures \result ≡ NULL;
+
+  complete behaviors;
+  disjoint behaviors;
+ */
+__extern char *strchr(const char *s, int c);
+
 __extern char *index(const char *, int);
 __extern char *strrchr(const char *, int);
 __extern char *rindex(const char *, int);
