@@ -2,17 +2,31 @@
  * memchr.c
  */
 
-#include <stddef.h>
 #include <string.h>
+#include <stddef.h>
 
+/* NOTE: Frama-C is having some trouble with unsigned char, so we will use
+   signed chars instead. It should not change anything.
+ */
 void *memchr(const void *s, int c, size_t n)
 {
-	const unsigned char *sp = s;
+	const char *sp = s;
+	/*@ ghost size_t i = 0;
+	          char cc = c;
+	 */
 
+	/*@
+	  loop assigns n, i, sp;
+	  loop invariant index: sp ≡ \at(sp, LoopEntry) + i;
+	  loop invariant index2: n ≡ \at(n, Pre) - i;
+	  loop invariant ∀ size_t j; 0 ≤ j < i ⇒ \at(sp, LoopEntry)[j] ≢ cc;
+	  loop invariant \at(sp, LoopEntry) <= sp <= \at(sp, LoopEntry)+\at(n, Pre);
+	 */
 	while (n--) {
-		if (*sp == (unsigned char)c)
+		if (*sp == (char)c)
 			return (void *)sp;
 		sp++;
+		/*@ ghost i++; */
 	}
 
 	return NULL;

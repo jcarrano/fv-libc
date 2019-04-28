@@ -173,7 +173,7 @@ include $(NEEDED_DEPS)
 endif
 
 $(OUT_DIR)/%.d: %.c | directories
-	$(CC) $(CPPFLAGS) $(CFLAGS) $(DEPFLAGS) $< -o $@
+	@$(CC) $(CPPFLAGS) $(CFLAGS) $(DEPFLAGS) $< -o $@
 
 # ##################### Output file generation ############################### #
 

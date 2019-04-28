@@ -40,8 +40,30 @@
 
 */
 
-__extern void *memccpy(void *, const void *, int, size_t);
-__extern void *memchr(const void *, int, size_t);
+/*@
+  // NOTE: Frama-C is having some trouble with unsigned char, so we will use
+  // signed chars instead. It should not change anything.
+  requires \valid_read((char*)s + (0..n-1));
+
+  assigns \nothing;
+
+  behavior find:
+	assumes ∃ size_t i; 0 ≤ i < n ∧ (char)c ≡ ((char*)s)[i];
+
+	ensures matches: *(char*)\result ≡ (char)c;
+	ensures within_bounds: (char*)s ≤ (char*)\result < (char*)s + n;
+	ensures is_first: ∀ size_t i; (char*)s + i < (char*)\result
+	                               ⇒ ((char*)s)[i] ≢ (char)c;
+
+  behavior no_find:
+	assumes ∀ size_t i; 0 ≤ i < n ==> (char)c ≢ ((char*)s)[i];
+
+	ensures \result ≡ NULL;
+
+  complete behaviors;
+  disjoint behaviors;
+*/
+__extern void *memchr(const void *s, int c, size_t n);
 __extern void *memrchr(const void *, int, size_t);
 __extern int memcmp(const void *, const void *, size_t);
 
@@ -70,6 +92,7 @@ __extern void *memmove(void *, const void *, size_t);
 __extern void *memset(void *dst, int c, size_t n);
 
 /* TODO: nonstandard, remove me. BEGIN LIST OF NONSTANDARD STUFF*/
+__extern void *memccpy(void *, const void *, int, size_t);
 __extern void *memmem(const void *, size_t, const void *, size_t);
 __extern void memswap(void *, void *, size_t);
 __extern void bzero(void *, size_t);
