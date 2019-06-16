@@ -32,11 +32,28 @@
   logic ℤ string_length{L}(char *s) = ((*s ≡ 0)?  0 : 1 + string_length(s+1));
 
   predicate memory_equal{Lx, Ly}(void *x, void *y, ℤ size) =
-	∀ size_t i; 0 ≤ i < size ⇒ \at(((char*)x)[i], Lx) ≡ \at(((char*)y)[i], Ly);
+	∀ size_t i;
+		0 ≤ i < size ⇒ \at(((char*)x)[i], Lx) ≡ \at(((char*)y)[i], Ly);
+
+  logic unsigned char deref_u(void *c, size_t i) = (unsigned char)((char*)c)[i];
+
+  predicate memory_equal_u{Lx, Ly}(void *x, void *y, ℤ size) =
+	∀ size_t i; 0 ≤ i < size ⇒ \at(deref_u(x, i), Lx) ≡ \at(deref_u(y, i), Ly);
 
   predicate string_equal{Lx, Ly}(char *x, char *y) = ∃ size_t term_idx;
 	term_idx ≥ 0 ∧ memory_equal{Lx, Ly}(x, y, term_idx+1)
 	∧ \at(x[term_idx], Lx) ≡ 0;
+*/
+
+/* // Proving this would make the definition of memcmp nicer.
+  lemma inductive_equal2{Lx, Ly}:
+	∀ ℤ n, void *x, void *y;
+		(∀ ℤ j;
+			(0 ≤ j < n ∧ memory_equal{Lx, Ly}(x, y, j))
+			⇒ memory_equal{Lx, Ly}(x, y, j+1)
+		)
+		⇒ memory_equal{Lx, Ly}(x, y, n)
+	;
 */
 
 /*@
@@ -64,7 +81,36 @@
 */
 __extern void *memchr(const void *s, int c, size_t n);
 __extern void *memrchr(const void *, int, size_t);
-__extern int memcmp(const void *, const void *, size_t);
+
+/*@
+  requires \valid_read((char*)s1 + (0..n-1));
+  requires \valid_read((char*)s2 + (0..n-1));
+
+  assigns \nothing;
+
+  behavior equal:
+	assumes \forall size_t j; (0 ≤ j < n && memory_equal_u{Pre, Pre}(s1, s2, j))
+		==> \at(deref_u(s1, j), Pre) == \at(deref_u(s2, j), Pre);
+
+	ensures memory_equal_u{Pre, Pre}(s1, s2, n);
+	ensures \result ≡ 0;
+
+  behavior less:
+	assumes ∃ size_t j; 0 ≤ j < n ∧ memory_equal_u{Pre, Pre}(s1, s2, j)
+		∧ \at(deref_u(s1, j), Pre) < \at(deref_u(s2, j), Pre);
+
+	ensures \result < 0;
+
+  behavior greater:
+	assumes ∃ size_t j; 0 ≤ j < n ∧ memory_equal_u{Pre, Pre}(s1, s2, j)
+		∧ \at(deref_u(s1, j), Pre) > \at(deref_u(s2, j), Pre);
+
+	ensures \result > 0;
+
+  complete behaviors;
+  disjoint behaviors;
+*/
+__extern int memcmp(const void *s1, const void *s2, size_t n);
 
 /*@
   requires \valid_read((char*)src + (0..n-1));
@@ -91,6 +137,7 @@ __extern void *memmove(void *, const void *, size_t);
 __extern void *memset(void *dst, int c, size_t n);
 
 /* TODO: nonstandard, remove me. BEGIN LIST OF NONSTANDARD STUFF*/
+__extern char *index(const char *, int);
 __extern void *memccpy(void *, const void *, int, size_t);
 __extern void *memmem(const void *, size_t, const void *, size_t);
 __extern void memswap(void *, void *, size_t);
@@ -124,7 +171,6 @@ __extern char *strcat(char *, const char *);
  */
 __extern char *strchr(const char *s, int c);
 
-__extern char *index(const char *, int);
 __extern char *strrchr(const char *, int);
 __extern char *rindex(const char *, int);
 __extern int strcmp(const char *, const char *);

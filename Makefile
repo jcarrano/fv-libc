@@ -109,7 +109,7 @@ NEEDED_OBJECTS = $(call transform,$(C_FILES),.c,.o)
 # manually
 # NEEDED_PROOFS = $(C_FILES:.c=.proof)
 PROVED_C_FILES = src/strcpy.c src/memcpy.c src/strnlen.c src/strlen.c \
-		 src/memset.c src/memchr.c src/strchr.c
+		 src/memset.c src/memchr.c src/strchr.c src/memcmp.c
 NEEDED_PROOFS = $(call transform,$(PROVED_C_FILES),.c,.proof)
 NEEDED_REPORTS = $(call transform,$(PROVED_C_FILES),.c,.proof-report)
 
